@@ -1,43 +1,46 @@
 import os
-import requests
 import time
+import requests
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
-# 各国の Shopee API エンドポイント
+# Shopee APIのエンドポイント（各国対応）
 SHOPEE_API_ENDPOINTS = {
-    "sg": "https://partner.shopeemobile.com/api/v2/",
-    "th": "https://partner.shopeemobile.com/api/v2/",
-    "my": "https://partner.shopeemobile.com/api/v2/",
-    "ph": "https://partner.shopeemobile.com/api/v2/",
-    "vn": "https://partner.shopeemobile.com/api/v2/",
-    "tw": "https://partner.shopeemobile.com/api/v2/"
+    "sg": "https://partner.shopeemobile.com/api/v2/shop/get_shop_info",
+    "th": "https://partner.shopeemobile.com/api/v2/shop/get_shop_info",
+    "my": "https://partner.shopeemobile.com/api/v2/shop/get_shop_info",
+    "ph": "https://partner.shopeemobile.com/api/v2/shop/get_shop_info",
+    "vn": "https://partner.shopeemobile.com/api/v2/shop/get_shop_info",
+    "tw": "https://partner.shopeemobile.com/api/v2/shop/get_shop_info"
 }
 
-@app.route("/get_shop_info")
+@app.route("/get_shop_info", methods=["GET"])
 def get_shop_info():
     shop_id = request.args.get("shop_id")
-    country_code = request.args.get("country", "sg")  # デフォルトはシンガポール
-    
-    if not shop_id:
-        return jsonify({"error": "error_param", "message": "There is no shop_id in query."}), 400
-    
-    if country_code not in SHOPEE_API_ENDPOINTS:
-        return jsonify({"error": "invalid_country", "message": "Invalid country code."}), 400
-    
-    # APIエンドポイントの選択
-    base_url = SHOPEE_API_ENDPOINTS[country_code]
-    url = f"{base_url}shop/get_shop_info"
-    
-    # 必要なパラメータを追加
+    country = request.args.get("country")
+
+    # ✅ 環境変数から partner_id を取得
+    partner_id = os.getenv("SHOPEE_PARTNER_ID")
+
+    if not shop_id or not country or not partner_id:
+        return jsonify({"error": "error_param", "message": "Missing required parameters"}), 400
+
+    # ✅ 指定された国のエンドポイントを取得
+    api_url = SHOPEE_API_ENDPOINTS.get(country.lower())
+
+    if not api_url:
+        return jsonify({"error": "invalid_country", "message": "Unsupported country code"}), 400
+
+    # APIリクエスト用のパラメータ
     params = {
-        "partner_id": os.getenv("SHOPEE_PARTNER_ID"),
-        "shop_id": shop_id,
+        "partner_id": int(partner_id),
+        "shop_id": int(shop_id),
         "timestamp": int(time.time())
     }
-    
-    response = requests.get(url, params=params)
+
+    # Shopee APIへリクエスト
+    response = requests.get(api_url, params=params)
     
     return response.json()
 
