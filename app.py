@@ -6,7 +6,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "Hello, Railway!"
+    return "Hello, Shopee!"
 
 @app.route("/get-ip")  # ← 新しいルートを追加！
 def get_ip():
