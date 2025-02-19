@@ -1,5 +1,7 @@
 import os
 import time
+import hmac
+import hashlib
 import requests
 from flask import Flask, request, jsonify
 
@@ -15,28 +17,44 @@ SHOPEE_API_ENDPOINTS = {
     "tw": "https://partner.shopeemobile.com/api/v2/shop/get_shop_info"
 }
 
+def generate_sign(path, partner_id, timestamp, partner_key):
+    """Shopee APIの署名を生成"""
+    base_string = f"{partner_id}{path}{timestamp}"
+    return hmac.new(
+        partner_key.encode('utf-8'),
+        base_string.encode('utf-8'),
+        hashlib.sha256
+    ).hexdigest()
+
 @app.route("/get_shop_info", methods=["GET"])
 def get_shop_info():
     shop_id = request.args.get("shop_id")
     country = request.args.get("country")
 
-    # ✅ 環境変数から partner_id を取得
+    # ✅ 環境変数から API 認証情報を取得
     partner_id = os.getenv("SHOPEE_PARTNER_ID")
+    partner_key = os.getenv("SHOPEE_PARTNER_KEY")
 
-    if not shop_id or not country or not partner_id:
+    if not shop_id or not country or not partner_id or not partner_key:
         return jsonify({"error": "error_param", "message": "Missing required parameters"}), 400
 
     # ✅ 指定された国のエンドポイントを取得
     api_url = SHOPEE_API_ENDPOINTS.get(country.lower())
+    api_path = "/api/v2/shop/get_shop_info"
 
     if not api_url:
         return jsonify({"error": "invalid_country", "message": "Unsupported country code"}), 400
+
+    # ✅ 署名を生成
+    timestamp = int(time.time())
+    sign = generate_sign(api_path, partner_id, timestamp, partner_key)
 
     # APIリクエスト用のパラメータ
     params = {
         "partner_id": int(partner_id),
         "shop_id": int(shop_id),
-        "timestamp": int(time.time())
+        "timestamp": timestamp,
+        "sign": sign
     }
 
     # Shopee APIへリクエスト
