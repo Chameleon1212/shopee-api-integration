@@ -35,6 +35,10 @@ def get_shop_info():
     partner_id = os.getenv("SHOPEE_PARTNER_ID")
     partner_key = os.getenv("SHOPEE_PARTNER_KEY")
 
+    # ✅ 環境変数の値をログに出力（デバッグ用）
+    print(f"Loaded partner_id from env: {partner_id}")
+    print(f"Loaded partner_key from env: {partner_key}")
+
     if not shop_id or not country or not partner_id or not partner_key:
         return jsonify({"error": "error_param", "message": "Missing required parameters"}), 400
 
@@ -57,9 +61,12 @@ def get_shop_info():
         "sign": sign
     }
 
+    # ✅ APIリクエスト時の partner_id をログに出力（デバッグ用）
+    print(f"Sending API request with partner_id: {params['partner_id']}")
+
     # Shopee APIへリクエスト
     response = requests.get(api_url, params=params)
-    
+
     return response.json()
 
 if __name__ == "__main__":
